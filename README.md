@@ -1,5 +1,5 @@
-# circbrk
-circbrk is a Circuit Breaker pattern implementation for Golang.
+# circbrk-go
+circbrk-go is a Circuit Breaker pattern implementation for Golang.
 
 # How To
 ```go
