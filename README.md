@@ -57,24 +57,24 @@ func main() {
 
   assert.Equal(cb.Allowed(), true)
   // The number of allowed attempts equals the number of required successes.
-  // Any additional calls to cb.Allow() in half-open state will return false.
+  // Any additional calls to cb.Allowed() in half-open state will return false.
   wg := sync.WaitGroup{}
   wg.Add(1)
   go func() {
     assert.Equal(cb.Allowed(), false)
-    assert.Equal(cb.Allow(), false)
+    assert.Equal(cb.Allowed(), false)
     wg.Done()
   }()
   wg.Wait()
   cb.Success()
 
   assert.Equal(cb.State(), circbrk.Closed)
-  assert.Equal(cb.Allow(), true)
+  assert.Equal(cb.Allowed(), true)
 
   // On any failure in the half-open state, the circuit re-enters the open
   // state.
   // cb.Fail()
   // assert.Equal(cb.Open(), true)
-  // assert.Equal(cb.Allow(), false)
+  // assert.Equal(cb.Allowed(), false)
 }
 ```
