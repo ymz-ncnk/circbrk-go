@@ -33,16 +33,38 @@ type CircuitBreaker struct {
 	failures int
 	timer    *time.Timer
 
-	trialCount int
+	trialAttempt int
+	trialCount   int
 
 	mu      sync.Mutex
 	options Options
 }
 
-// Open returns true if the circuit breaker is in Open state.
-// This indicates that operations should fail fast without attempting execution.
-func (b *CircuitBreaker) Open() bool {
-	return b.State() == Open
+// Allow reports whether a request is permitted to proceed.
+//
+// It returns false if:
+//   - the breaker is in the Open state (fail fast), or
+//   - the breaker is HalfOpen and the number of trial attempts has
+//     already reached the configured SuccessThreshold.
+//
+// In all other cases (Closed, or HalfOpen with remaining trial attempts),
+// it returns true, meaning requests are allowed to proceed.
+func (b *CircuitBreaker) Allow() bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	switch b.state {
+	case Open:
+		return false
+	case HalfOpen:
+		if b.trialAttempt < b.options.SuccessThreshold {
+			b.trialAttempt += 1
+			return true
+		}
+		return false
+	default:
+		return true
+	}
 }
 
 // State returns the current state of the circuit breaker.
@@ -65,7 +87,7 @@ func (b *CircuitBreaker) Success() {
 
 	switch b.state {
 	case Closed:
-		b.sucessOnClosed()
+		b.successOnClosed()
 	case HalfOpen:
 		b.trialCount++
 		b.checkHalfOpen()
@@ -88,6 +110,7 @@ func (b *CircuitBreaker) Fail() {
 	case Closed:
 		b.failOnClosed()
 	case HalfOpen:
+		b.trialAttempt = 0
 		b.trialCount = 0
 		b.trip()
 	case Open:
@@ -104,11 +127,12 @@ func (b *CircuitBreaker) ResetNow() {
 
 	if b.timer != nil {
 		b.timer.Stop()
+		b.timer = nil
 	}
 	b.reset()
 }
 
-func (b *CircuitBreaker) sucessOnClosed() {
+func (b *CircuitBreaker) successOnClosed() {
 	oldOk := b.window[b.index]
 	if !oldOk {
 		b.failures--
@@ -135,6 +159,9 @@ func (b *CircuitBreaker) trip() {
 		return
 	}
 	b.setState(Open)
+	if b.timer != nil {
+		b.timer.Stop()
+	}
 	b.timer = time.AfterFunc(b.options.OpenDuration, func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()
@@ -156,6 +183,7 @@ func (b *CircuitBreaker) reset() {
 	}
 	b.index = 0
 	b.failures = 0
+	b.trialAttempt = 0
 	b.trialCount = 0
 }
 
