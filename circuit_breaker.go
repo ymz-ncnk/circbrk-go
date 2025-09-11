@@ -40,16 +40,17 @@ type CircuitBreaker struct {
 	options Options
 }
 
-// Allow reports whether a request is permitted to proceed.
+// Allowed reports whether executing an operation is currently permitted by
+// the circuit breaker.
 //
 // It returns false if:
 //   - the breaker is in the Open state (fail fast), or
-//   - the breaker is HalfOpen and the number of trial attempts has
-//     already reached the configured SuccessThreshold.
+//   - the breaker is in the HalfOpen state and the number of allowed trial
+//     attempts has already reached the configured SuccessThreshold.
 //
 // In all other cases (Closed, or HalfOpen with remaining trial attempts),
-// it returns true, meaning requests are allowed to proceed.
-func (b *CircuitBreaker) Allow() bool {
+// it returns true, meaning the operation is allowed to execute.
+func (b *CircuitBreaker) Allowed() bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 

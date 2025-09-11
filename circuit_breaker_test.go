@@ -75,7 +75,7 @@ func TestCircuitBreaker(t *testing.T) {
 			// First HalfOpen period: count allowed attempts
 			unblockedCount := 0
 			for range 10 {
-				if cb.Allow() {
+				if cb.Allowed() {
 					unblockedCount++
 				}
 			}
@@ -97,7 +97,7 @@ func TestCircuitBreaker(t *testing.T) {
 			// Second HalfOpen period: count allowed attempts
 			unblockedCount = 0
 			for range 10 {
-				if cb.Allow() {
+				if cb.Allowed() {
 					unblockedCount++
 				}
 			}
