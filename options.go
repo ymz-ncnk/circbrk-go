@@ -2,9 +2,11 @@ package circbrk
 
 import "time"
 
-type ChangeStateCallback func(state State)
-type SuccessCallback func(state State)
-type FailCallback func(state State)
+type (
+	ChangeStateCallback func(state State)
+	SuccessCallback     func(state State)
+	FailCallback        func(state State)
+)
 
 type Options struct {
 	WindowSize          int
@@ -53,6 +55,8 @@ func WithSuccessThreshold(threshold int) SetOption {
 
 // WithChangeStateCallback sets a callback function that is invoked whenever the
 // circuit changes its state (e.g., Closed -> Open, Open -> HalfOpen).
+// The callback runs while the breaker mutex is held. To prevent deadlocks,
+// avoid calling CircuitBreaker methods inside it.
 func WithChangeStateCallback(callback ChangeStateCallback) SetOption {
 	return func(o *Options) {
 		o.ChangeStateCallback = callback
@@ -61,6 +65,8 @@ func WithChangeStateCallback(callback ChangeStateCallback) SetOption {
 
 // WithSuccessCallback sets a callback that is triggered when the Success method
 // is called.
+// The callback runs while the breaker mutex is held. To prevent deadlocks,
+// avoid calling CircuitBreaker methods inside it.
 func WithSuccessCallback(callback SuccessCallback) SetOption {
 	return func(o *Options) {
 		o.SuccessCallback = callback
@@ -69,6 +75,8 @@ func WithSuccessCallback(callback SuccessCallback) SetOption {
 
 // WithFailCallback sets a callback that is triggered when the Fail method is
 // called.
+// The callback runs while the breaker mutex is held. To prevent deadlocks,
+// avoid calling CircuitBreaker methods inside it.
 func WithFailCallback(callback FailCallback) SetOption {
 	return func(o *Options) {
 		o.FailCallback = callback
@@ -79,8 +87,8 @@ func Apply(ops []SetOption, o *Options) {
 	for i := range ops {
 		ops[i](o)
 	}
-	if o.FailureRate < 0.0 || o.FailureRate > 1.0 {
-		panic("Options.FailureRate must be between 0.0 and 1.0")
+	if o.FailureRate <= 0.0 || o.FailureRate > 1.0 {
+		panic("Options.FailureRate must be in (0.0, 1.0]")
 	}
 	if o.WindowSize <= 0 {
 		panic("Options.WindowSize must be greater than 0")
@@ -89,6 +97,6 @@ func Apply(ops []SetOption, o *Options) {
 		panic("Options.OpenDuration must be greater than 0")
 	}
 	if o.SuccessThreshold <= 0 {
-		panic("Options.TrialMax must be greater than 0")
+		panic("Options.SuccessThreshold must be greater than 0")
 	}
 }
