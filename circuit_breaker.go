@@ -40,8 +40,7 @@ type CircuitBreaker struct {
 	options Options
 }
 
-// Allowed reports whether executing an operation is currently permitted by
-// the circuit breaker.
+// Allow reports whether the circuit breaker permits executing an operation.
 //
 // It returns false if:
 //   - the breaker is in the Open state (fail fast), or
@@ -50,7 +49,7 @@ type CircuitBreaker struct {
 //
 // In all other cases (Closed, or HalfOpen with remaining trial attempts),
 // it returns true, meaning the operation is allowed to execute.
-func (b *CircuitBreaker) Allowed() bool {
+func (b *CircuitBreaker) Allow() bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
