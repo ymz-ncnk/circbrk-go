@@ -8,10 +8,17 @@ import (
 // New creates a new CircuitBreaker instance with the provided options, used to
 // configure parameters such as window size, failure rate, open duration, and
 // success threshold.
-func New(ops ...SetOption) *CircuitBreaker {
-	o := Options{}
-	Apply(ops, &o)
-
+func New(opts ...SetOption) *CircuitBreaker {
+	o := Options{
+		WindowSize:       DefaultWindowSize,
+		FailureRate:      DefaultFailureRate,
+		OpenDuration:     DefaultOpenDuration,
+		SuccessThreshold: DefaultSuccessThreshold,
+	}
+	Apply(&o, opts...)
+	if err := o.Validate(); err != nil {
+		panic(err)
+	}
 	window := make([]bool, o.WindowSize)
 	for i := range window {
 		window[i] = true

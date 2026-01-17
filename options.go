@@ -1,6 +1,16 @@
 package circbrk
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+const (
+	DefaultWindowSize       = 50
+	DefaultFailureRate      = 0.5
+	DefaultOpenDuration     = 5 * time.Second
+	DefaultSuccessThreshold = 3
+)
 
 type (
 	ChangeStateCallback func(state State)
@@ -18,7 +28,29 @@ type Options struct {
 	FailCallback        FailCallback
 }
 
+func (o Options) Validate() error {
+	if o.WindowSize <= 0 {
+		return errors.New("Options.WindowSize must be greater than 0")
+	}
+	if o.FailureRate <= 0.0 || o.FailureRate > 1.0 {
+		return errors.New("Options.FailureRate must be in (0.0, 1.0]")
+	}
+	if o.OpenDuration <= 0 {
+		return errors.New("Options.OpenDuration must be greater than 0")
+	}
+	if o.SuccessThreshold <= 0 {
+		return errors.New("Options.SuccessThreshold must be greater than 0")
+	}
+	return nil
+}
+
 type SetOption func(o *Options)
+
+func Apply(o *Options, ops ...SetOption) {
+	for i := range ops {
+		ops[i](o)
+	}
+}
 
 // WithWindowSize sets the number of recent calls to track when calculating the
 // failure rate.
@@ -80,23 +112,5 @@ func WithSuccessCallback(callback SuccessCallback) SetOption {
 func WithFailCallback(callback FailCallback) SetOption {
 	return func(o *Options) {
 		o.FailCallback = callback
-	}
-}
-
-func Apply(ops []SetOption, o *Options) {
-	for i := range ops {
-		ops[i](o)
-	}
-	if o.FailureRate <= 0.0 || o.FailureRate > 1.0 {
-		panic("Options.FailureRate must be in (0.0, 1.0]")
-	}
-	if o.WindowSize <= 0 {
-		panic("Options.WindowSize must be greater than 0")
-	}
-	if o.OpenDuration <= 0 {
-		panic("Options.OpenDuration must be greater than 0")
-	}
-	if o.SuccessThreshold <= 0 {
-		panic("Options.SuccessThreshold must be greater than 0")
 	}
 }
